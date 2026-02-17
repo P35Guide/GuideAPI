@@ -1,0 +1,6 @@
+@GuideAPI_HostAddress = http://localhost:5237
+
+GET {{GuideAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
