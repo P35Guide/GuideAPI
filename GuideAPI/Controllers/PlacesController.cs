@@ -15,6 +15,19 @@ namespace GuideAPI.Controllers
         }
 
 
+        [HttpGet("google-maps-photo/{placeId}")]
+        public async Task<IActionResult> GetPhotoUrls(string placeId)
+        {
+            if (string.IsNullOrEmpty(placeId))
+            {
+                return BadRequest("placeId empty!");
+            }
+
+            var photoUrls = await _service.GetPlacePhotoUrlsAsync(placeId);
+            return Ok(photoUrls);
+        }
+
+
 
     }
 }
