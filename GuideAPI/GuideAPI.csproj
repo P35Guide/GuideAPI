@@ -10,4 +10,13 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Application\Interfaces\" />
+    <Folder Include="Application\Services\" />
+    <Folder Include="Controllers\" />
+    <Folder Include="Domain\Models\" />
+    <Folder Include="Domain\DTOs\" />
+    <Folder Include="Infrastructure\GoogleMaps\" />
+  </ItemGroup>
+
 </Project>
