@@ -15,7 +15,7 @@ namespace GuideAPI.Controllers
             _service = service;
         }
 
-        [HttpGet("google-maps-search-nearby/{placeId}")]
+        [HttpGet("google-maps-search-nearby")]
         public async Task<IActionResult> SearchNearby(double Latitude,double Longitude,double Radius)
         {
             Radius = Radius == 0 ? 1000 : Radius;
