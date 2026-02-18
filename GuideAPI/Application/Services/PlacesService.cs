@@ -1,6 +1,32 @@
-﻿namespace GuideAPI.Application.Services
+﻿using GuideAPI.Application.Interfaces;
+
+namespace GuideAPI.Application.Services
 {
-    public class PlacesService
+    public class PlacesService : IPlacesService
     {
+        public string GenerateGoogleMapsLink(string placeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(string placeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
