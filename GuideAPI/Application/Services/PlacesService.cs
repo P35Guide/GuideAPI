@@ -1,4 +1,6 @@
 ﻿using GuideAPI.Application.Interfaces;
+using GuideAPI.Domain.DTOs;
+using GuideAPI.Domain.Models;
 
 namespace GuideAPI.Application.Services
 {
