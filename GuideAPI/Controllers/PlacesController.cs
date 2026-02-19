@@ -34,8 +34,12 @@ namespace GuideAPI.Controllers
                 return BadRequest("placeId empty!");
             }
 
-            var res = await _service.GetPlaceDetailsAsync(placeId);
-            return Ok(res);
+            var result = await _service.GetPlaceDetailsAsync(placeId);
+            if(result == null)
+            {
+                return NotFound("we have no info");
+            }
+            return Ok(result);
         }
 
         [HttpGet("google-maps-photo/{placeId}")]

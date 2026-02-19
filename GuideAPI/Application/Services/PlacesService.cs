@@ -20,8 +20,10 @@ namespace GuideAPI.Application.Services
         // Search for nearby places by request parameters
         public async Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request)
         {
+            var radius = request.LocationRestriction.Circle.Radius;
+            request.LocationRestriction.Circle.Radius = radius <=0?1000:radius;
             var url = $"{BaseUrl}:searchNearby";
-            var fieldMask = GetNearbySearchFieldMask();
+            var fieldMask = GetNearbySearchFieldMask("POST");
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
@@ -44,7 +46,7 @@ namespace GuideAPI.Application.Services
         public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId)
         {
             var url = $"{BaseUrl}/{placeId}";
-            var fieldMask = GetNearbySearchFieldMask();
+            var fieldMask = GetNearbySearchFieldMask("GET");
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
@@ -139,8 +141,28 @@ namespace GuideAPI.Application.Services
         }
 
         // Returns the field mask for Nearby Search requests
-        private static string GetNearbySearchFieldMask()
+        private static string GetNearbySearchFieldMask(string method)
         {
+            if(method == "GET")
+            {
+                return string.Join(",",
+                "id",
+                "name",
+                "displayName",
+                "primaryType",
+                "location",
+                "rating",
+                "userRatingCount",
+                "shortFormattedAddress",
+                "nationalPhoneNumber",
+                "websiteUri",
+                "googleMapsUri",
+                "priceLevel",
+                "currentOpeningHours",
+                "editorialSummary",
+                "generativeSummary"
+            );
+            }
             return string.Join(",",
                 "places.id",
                 "places.name",
