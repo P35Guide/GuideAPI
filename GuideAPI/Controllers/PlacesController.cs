@@ -15,28 +15,15 @@ namespace GuideAPI.Controllers
             _service = service;
         }
 
-        [HttpGet("google-maps-search-nearby")]
-        public async Task<IActionResult> SearchNearby(double Latitude,double Longitude,double Radius)
+        [HttpPost("google-maps-search-nearby")]
+        public async Task<IActionResult> SearchNearby([FromBody]SearchNearbyRequest request)
         {
-            Radius = Radius == 0 ? 1000 : Radius;
-            var res = await _service.SearchNearbyAsync(
-                new SearchNearbyRequest()
-                {
-                    LocationRestriction = new LocationRestriction()
-                    {
-                        Circle = new Circle()
-                        {
-                            Radius = Radius,
-                            Center = new Center()
-                            {
-                                Latitude = Latitude,
-                                Longitude = Longitude
-                            }
-                        }
-                    }
-                }
-                );
-            return Ok(res);
+            if(request == null)
+            {
+                return BadRequest("Bad request");
+            }
+            var result = await _service.SearchNearbyAsync(request);
+            return Ok(result);
         }
 
         [HttpGet("google-maps-details/{placeId}")]
