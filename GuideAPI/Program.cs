@@ -1,4 +1,3 @@
-
 using GuideAPI.Application.Interfaces;
 using GuideAPI.Application.Services;
 
@@ -17,14 +16,16 @@ namespace GuideAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            //Register Services
-            builder.Services.AddHttpClient<IPlacesService, PlacesService>()
-                .AddTypedClient((httpClient, serviceProvider) =>
-    {
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        var apiKey = configuration["GooglePlaces:ApiKey"];
-        return new PlacesService(httpClient, apiKey);
-    });
+            // Register PlacesService with explicit factory
+            builder.Services.AddHttpClient<IPlacesService, PlacesService>().ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler());
+            builder.Services.AddTransient<IPlacesService>(serviceProvider =>
+            {
+                var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpClientFactory.CreateClient();
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var apiKey = configuration["GooglePlaces:ApiKey"] ?? throw new InvalidOperationException("GooglePlaces:ApiKey is missing.");
+                return new PlacesService(httpClient, apiKey);
+            });
 
             var app = builder.Build();
 
