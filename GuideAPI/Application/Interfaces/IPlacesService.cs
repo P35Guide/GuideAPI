@@ -16,9 +16,6 @@ namespace GuideAPI.Application.Interfaces
         // Get detailed information about a place by Id
         Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId);
 
-        // Generate a Google Maps link for a place
-        string GenerateGoogleMapsLink(string placeId);
-
         // Get photo URLs for a specific place
         Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(string placeId);
     }
