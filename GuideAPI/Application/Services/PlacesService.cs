@@ -20,8 +20,10 @@ namespace GuideAPI.Application.Services
         // Search for nearby places by request parameters
         public async Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request)
         {
+            var radius = request.LocationRestriction.Circle.Radius;
+            request.LocationRestriction.Circle.Radius = radius <=0?1000:radius;
             var url = $"{BaseUrl}:searchNearby";
-            var fieldMask = GetNearbySearchFieldMask();
+            var fieldMask = GetNearbySearchFieldMask("POST");
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
@@ -44,7 +46,7 @@ namespace GuideAPI.Application.Services
         public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId)
         {
             var url = $"{BaseUrl}/{placeId}";
-            var fieldMask = GetNearbySearchFieldMask();
+            var fieldMask = GetNearbySearchFieldMask("GET");
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
@@ -100,9 +102,9 @@ namespace GuideAPI.Application.Services
             };
         }
         // Get photo URLs for a specific place
-        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(string placeId)
+        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
         {
-            var url = $"{BaseUrl}/{placeId}";
+            var url = $"{BaseUrl}/{request.PlaceId}";
             var fieldMask = "photos"; // Only request photos field
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
@@ -128,9 +130,22 @@ namespace GuideAPI.Application.Services
                 {
                     if (photo.TryGetProperty("name", out var nameElement))
                     {
+                        var photoResourceName = nameElement.GetString();
                         // Construct the photo resource URL
-                        var photoResourceUrl = $"https://places.googleapis.com/v1/{nameElement.GetString()}";
-                        photoUrls.Add(photoResourceUrl);
+                        var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
+
+                        if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
+                        {
+                            if (request.MaxHeightPx.HasValue)
+                                photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
+                            if (request.MaxWidthPx.HasValue)
+                                photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
+                        }
+                        else
+                        {
+                            photoResourceUrl += "&maxHeightPx=400";
+                        }
+                            photoUrls.Add(photoResourceUrl);
                     }
                 }
             }
@@ -139,8 +154,28 @@ namespace GuideAPI.Application.Services
         }
 
         // Returns the field mask for Nearby Search requests
-        private static string GetNearbySearchFieldMask()
+        private static string GetNearbySearchFieldMask(string method)
         {
+            if(method == "GET")
+            {
+                return string.Join(",",
+                "id",
+                "name",
+                "displayName",
+                "primaryType",
+                "location",
+                "rating",
+                "userRatingCount",
+                "shortFormattedAddress",
+                "nationalPhoneNumber",
+                "websiteUri",
+                "googleMapsUri",
+                "priceLevel",
+                "currentOpeningHours",
+                "editorialSummary",
+                "generativeSummary"
+            );
+            }
             return string.Join(",",
                 "places.id",
                 "places.name",
