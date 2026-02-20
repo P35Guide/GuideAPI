@@ -102,9 +102,9 @@ namespace GuideAPI.Application.Services
             };
         }
         // Get photo URLs for a specific place
-        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(string placeId)
+        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
         {
-            var url = $"{BaseUrl}/{placeId}";
+            var url = $"{BaseUrl}/{request.PlaceId}";
             var fieldMask = "photos"; // Only request photos field
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
@@ -130,9 +130,22 @@ namespace GuideAPI.Application.Services
                 {
                     if (photo.TryGetProperty("name", out var nameElement))
                     {
+                        var photoResourceName = nameElement.GetString();
                         // Construct the photo resource URL
-                        var photoResourceUrl = $"https://places.googleapis.com/v1/{nameElement.GetString()}";
-                        photoUrls.Add(photoResourceUrl);
+                        var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
+
+                        if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
+                        {
+                            if (request.MaxHeightPx.HasValue)
+                                photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
+                            if (request.MaxWidthPx.HasValue)
+                                photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
+                        }
+                        else
+                        {
+                            photoResourceUrl += "&maxHeightPx=400";
+                        }
+                            photoUrls.Add(photoResourceUrl);
                     }
                 }
             }

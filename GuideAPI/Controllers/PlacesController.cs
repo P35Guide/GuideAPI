@@ -42,15 +42,20 @@ namespace GuideAPI.Controllers
             return Ok(result);
         }
 
-        [HttpGet("google-maps-photo/{placeId}")]
-        public async Task<IActionResult> GetPhotoUrls(string placeId)
+        [HttpPost("google-maps-photo")]
+        public async Task<IActionResult> GetPhotoUrls([FromBody]PlacePhotoUrlsRequest request)
         {
-            if (string.IsNullOrEmpty(placeId))
+            if (request == null || string.IsNullOrEmpty(request.PlaceId))
             {
-                return BadRequest("placeId empty!");
+                return BadRequest("PlaceId is required!");
             }
 
-            var photoUrls = await _service.GetPlacePhotoUrlsAsync(placeId);
+            if ((request.MaxHeightPx.HasValue && (request.MaxHeightPx < 1 || request.MaxHeightPx > 4800)) || (request.MaxWidthPx.HasValue && (request.MaxWidthPx < 1 || request.MaxWidthPx > 4800)))
+            {
+                return BadRequest("maxHeightPx and maxWidthPx must be between 1 and 4800");
+            }
+
+            var photoUrls = await _service.GetPlacePhotoUrlsAsync(request);
             return Ok(photoUrls);
         }
 
