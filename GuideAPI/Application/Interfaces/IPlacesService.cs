@@ -14,7 +14,7 @@ namespace GuideAPI.Application.Interfaces
         NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response);
 
         // Get detailed information about a place by Id
-        Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId);
+        Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en");
 
         // Get photo URLs for a specific place
         Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request);

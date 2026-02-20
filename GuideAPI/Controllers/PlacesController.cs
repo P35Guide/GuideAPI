@@ -27,14 +27,14 @@ namespace GuideAPI.Controllers
         }
 
         [HttpGet("google-maps-details/{placeId}")]
-        public async Task<IActionResult> GetDetails(string placeId)
+        public async Task<IActionResult> GetDetails(string placeId, [FromQuery] string? lang = "en") //The language code for Ukrainian is "uk"
         {
             if (string.IsNullOrEmpty(placeId))
             {
                 return BadRequest("placeId empty!");
             }
 
-            var result = await _service.GetPlaceDetailsAsync(placeId);
+            var result = await _service.GetPlaceDetailsAsync(placeId, lang);
             if(result == null)
             {
                 return NotFound("we have no info");

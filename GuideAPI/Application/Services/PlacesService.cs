@@ -42,8 +42,8 @@ namespace GuideAPI.Application.Services
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
 
-        // Get detailed information about a place by Id
-        public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId)
+        // Get detailed information about a place by Id and optional language
+        public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en")
         {
             var url = $"{BaseUrl}/{placeId}";
             var fieldMask = GetNearbySearchFieldMask("GET");
@@ -52,9 +52,27 @@ namespace GuideAPI.Application.Services
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
             httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
 
+            // Add languageCode only if provided and not empty
+            var uriBuilder = new UriBuilder(url);
+            if (!string.IsNullOrWhiteSpace(languageCode))
+            {
+                uriBuilder.Query = $"languageCode={languageCode}";
+            }
+            httpRequest.RequestUri = uriBuilder.Uri;
+
             var response = await _httpClient.SendAsync(httpRequest);
+
+            // Check for invalid language code error
             if (!response.IsSuccessStatusCode)
+            {
+                var errorJson = await response.Content.ReadAsStringAsync();
+                if (errorJson.Contains("INVALID_ARGUMENT", StringComparison.OrdinalIgnoreCase) &&
+                    errorJson.Contains("languageCode", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException($"Invalid language code: {languageCode}");
+                }
                 return null;
+            }
 
             var json = await response.Content.ReadAsStringAsync();
             var place = JsonSerializer.Deserialize<Place>(json, new JsonSerializerOptions
