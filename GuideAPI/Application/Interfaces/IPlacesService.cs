@@ -17,6 +17,6 @@ namespace GuideAPI.Application.Interfaces
         Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en");
 
         // Get photo URLs for a specific place
-        Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(string placeId);
+        Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request);
     }
 }
