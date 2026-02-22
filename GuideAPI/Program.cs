@@ -52,6 +52,8 @@ namespace GuideAPI
 
 			app.UseCors();
 
+			//app.UseHttpsRedirection();
+
 			app.UseAuthorization();
 
 
