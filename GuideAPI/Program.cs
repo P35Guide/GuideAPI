@@ -1,5 +1,8 @@
 using GuideAPI.Application.Interfaces;
 using GuideAPI.Application.Services;
+using GuideAPI.DAL;
+using GuideAPI.DAL.Abstracts;
+using Microsoft.EntityFrameworkCore;
 
 namespace GuideAPI
 {
@@ -35,8 +38,14 @@ namespace GuideAPI
 				var apiKey = configuration["GooglePlaces:ApiKey"] ?? throw new InvalidOperationException("GooglePlaces:ApiKey is missing.");
 				return new PlacesService(httpClient, apiKey);
 			});
+			builder.Services.AddDbContext<AppDbContext>(options =>
+				options.UseSqlServer(
+					builder.Configuration.GetConnectionString("DefaultConnection"
+					)));
 
-			var app = builder.Build();
+            builder.Services.AddScoped<IUserPlaceRepository, UserPlaceRepository>();
+
+            var app = builder.Build();
 
 			// Configure the HTTP request pipeline.
 			if (app.Environment.IsDevelopment())
