@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace GuideAPI.DAL.Entities
 {
@@ -12,6 +8,6 @@ namespace GuideAPI.DAL.Entities
 
         public long TelegramId { get; set; }
 
-        public ICollection<UserPlace> UserPlaces { get; set; }
+        
     }
 }

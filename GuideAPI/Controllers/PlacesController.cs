@@ -1,6 +1,8 @@
-ï»¿using GuideAPI.Application.Interfaces;
+using GuideAPI.Application.Interfaces;
+using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace GuideAPI.Controllers
 {
@@ -16,13 +18,28 @@ namespace GuideAPI.Controllers
         }
 
         [HttpPost("google-maps-search-nearby")]
-        public async Task<IActionResult> SearchNearby([FromBody]SearchNearbyRequest request)
+        public async Task<IActionResult> SearchNearby([FromBody]SearchNearbyRequest request, [FromQuery] bool? openNow = null)
         {
             if(request == null)
             {
                 return BadRequest("Bad request");
             }
             var result = await _service.SearchNearbyAsync(request);
+
+            // ô³ëüòðàö³ÿ, ÷è â³äêðèòî
+            if (openNow == true)
+            {
+                result.Places = result.Places?
+                    .Where(p => p.OpenNow == true)
+                    .ToArray() ?? Array.Empty<NearbyPlaceDTO>();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet("db-all")]
+        public async Task<IActionResult> GetAllFromDb()
+        {
+            var result = await _service.GetAllPlacesAsync();
             return Ok(result);
         }
 
@@ -63,3 +80,5 @@ namespace GuideAPI.Controllers
 
     }
 }
+
+

@@ -36,7 +36,8 @@ namespace GuideAPI
 				var httpClient = httpClientFactory.CreateClient();
 				var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 				var apiKey = configuration["GooglePlaces:ApiKey"] ?? throw new InvalidOperationException("GooglePlaces:ApiKey is missing.");
-				return new PlacesService(httpClient, apiKey);
+                var repository = serviceProvider.GetRequiredService<IUserPlaceRepository>();
+                return new PlacesService(httpClient, apiKey, repository);
 			});
 			builder.Services.AddDbContext<AppDbContext>(options =>
 				options.UseSqlServer(
@@ -60,6 +61,8 @@ namespace GuideAPI
 			}
 
 			app.UseCors();
+
+			//app.UseHttpsRedirection();
 
 			app.UseAuthorization();
 

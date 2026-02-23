@@ -30,5 +30,9 @@ namespace GuideAPI.DAL
         {
             await _context.SaveChangesAsync();
         }
+        public async Task<List<UserPlace>> GetAllPlacesAsync()
+        {
+            return await _context.UserPlaces.ToListAsync();
+        }
     }
 }
