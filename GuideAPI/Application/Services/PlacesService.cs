@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text;
 using GuideAPI.Application.Interfaces;
 using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
@@ -21,7 +22,7 @@ namespace GuideAPI.Application.Services
         public async Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request)
         {
             var radius = request.LocationRestriction.Circle.Radius;
-            request.LocationRestriction.Circle.Radius = radius <=0?1000:radius;
+            request.LocationRestriction.Circle.Radius = radius <= 0 ? 1000 : radius;
             var url = $"{BaseUrl}:searchNearby";
             var fieldMask = GetNearbySearchFieldMask("POST");
 
@@ -42,33 +43,43 @@ namespace GuideAPI.Application.Services
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
 
-        // Search for nearby places by name and/or coordinates
-        public async Task<NearbyPlacesResponseDTO> SearchNearbyByNameAsync(SearchNearbyByNameRequest request)
+        public async Task<Center?> GetCityCoordinatesByQueryAsync(string query)
         {
-            // Check for empty query and coordinates
-            bool hasQuery = !string.IsNullOrWhiteSpace(request.Query);
-            bool hasCoordinates = HasCoordinates(request);
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentException("Query is required.");
 
-            if (!hasQuery && !hasCoordinates)
-                throw new ArgumentException("Search requires either a name (query) or coordinates.");
-
-            // If query is empty, search by coordinates only
-            if (!hasQuery && hasCoordinates)
+            var textSearchUrl = $"{BaseUrl}:searchText";
+            var textSearchBody = new
             {
-                var nearbyRequest = MapToNearbyRequest(request);
-                return await SearchNearbyAsync(nearbyRequest);
-            }
+                textQuery = query
+            };
 
-            // If coordinates are missing, search by place name (query) only
-            if (hasQuery && !hasCoordinates)
+            using var textSearchRequest = new HttpRequestMessage(HttpMethod.Post, textSearchUrl);
+            textSearchRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
+            textSearchRequest.Headers.Add("X-Goog-FieldMask", "places.location");
+            textSearchRequest.Content = new StringContent(JsonSerializer.Serialize(textSearchBody), Encoding.UTF8, "application/json");
+
+            var textSearchResponse = await _httpClient.SendAsync(textSearchRequest);
+            textSearchResponse.EnsureSuccessStatusCode();
+
+            var textSearchJson = await textSearchResponse.Content.ReadAsStringAsync();
+            using var textSearchDoc = JsonDocument.Parse(textSearchJson);
+            var placesElement = textSearchDoc.RootElement.TryGetProperty("places", out var pe) ? pe : default;
+            if (placesElement.ValueKind != JsonValueKind.Array || placesElement.GetArrayLength() == 0)
+                return null;
+
+            var firstPlace = placesElement[0];
+            if (!firstPlace.TryGetProperty("location", out var location))
+                return null;
+
+            double latitude = location.GetProperty("latitude").GetDouble();
+            double longitude = location.GetProperty("longitude").GetDouble();
+
+            return new Center
             {
-                // Implement Text Search API call here for search by name only
-                throw new NotImplementedException("Text Search API for name-only search is not implemented.");
-            }
-
-            // If both query and coordinates are present, search for places matching the name near the coordinates
-            // Implement Text Search API call here for search by name near coordinates
-            throw new NotImplementedException("Text Search API for name-near-coordinates search is not implemented.");
+                Latitude = latitude,
+                Longitude = longitude
+            };
         }
 
         // Get detailed information about a place by Id and optional language
@@ -124,7 +135,6 @@ namespace GuideAPI.Application.Services
             };
         }
 
-       
         // Get photo URLs for a specific place
         public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
         {
@@ -169,7 +179,7 @@ namespace GuideAPI.Application.Services
                         {
                             photoResourceUrl += "&maxHeightPx=400";
                         }
-                            photoUrls.Add(photoResourceUrl);
+                        photoUrls.Add(photoResourceUrl);
                     }
                 }
             }
@@ -205,7 +215,7 @@ namespace GuideAPI.Application.Services
         // Returns the field mask for Nearby Search requests
         private static string GetNearbySearchFieldMask(string method)
         {
-            if(method == "GET")
+            if (method == "GET")
             {
                 return string.Join(",",
                 "id",
@@ -242,29 +252,6 @@ namespace GuideAPI.Application.Services
                 "places.editorialSummary",
                 "places.generativeSummary"
             );
-        }
-
-        private bool HasCoordinates(SearchNearbyByNameRequest request)
-        {
-            return request.LocationRestriction != null &&
-                   request.LocationRestriction.Circle != null &&
-                   request.LocationRestriction.Circle.Center != null &&
-                   request.LocationRestriction.Circle.Center.Latitude != null &&
-                   request.LocationRestriction.Circle.Center.Longitude != null &&
-                   request.LocationRestriction.Circle.Radius != null;
-        }
-
-        private SearchNearbyRequest MapToNearbyRequest(SearchNearbyByNameRequest request)
-        {
-            return new SearchNearbyRequest
-            {
-                IncludedTypes = request.IncludedTypes,
-                ExcludedTypes = request.ExcludedTypes,
-                MaxResultCount = request.MaxResultCount,
-                LanguageCode = request.LanguageCode,
-                RankPreference = request.RankPreference,
-                LocationRestriction = request.LocationRestriction
-            };
         }
     }
 }

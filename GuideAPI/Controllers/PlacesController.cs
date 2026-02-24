@@ -69,7 +69,18 @@ namespace GuideAPI.Controllers
             return Ok(photoUrls);
         }
 
+        [HttpGet("city-coordinates")]
+        public async Task<IActionResult> GetCityCoordinates([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query is required.");
 
+            var result = await _service.GetCityCoordinatesByQueryAsync(query);
+            if (result == null)
+                return NotFound("City not found.");
+
+            return Ok(result);
+        }
 
     }
 }
