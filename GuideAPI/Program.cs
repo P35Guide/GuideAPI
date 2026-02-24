@@ -41,10 +41,11 @@ namespace GuideAPI
 			});
 			builder.Services.AddDbContext<AppDbContext>(options =>
 				options.UseSqlServer(
-					builder.Configuration.GetConnectionString("DefaultConnection"
-					)));
+					builder.Configuration.GetConnectionString("DmytroNaumov"
+                    )));
 
             builder.Services.AddScoped<IUserPlaceRepository, UserPlaceRepository>();
+			builder.Services.AddScoped<ICustomPlacesService, CustomPlacesService>();
 
             var app = builder.Build();
 
