@@ -10,6 +10,9 @@ namespace GuideAPI.Application.Interfaces
         // Search for nearby places by request parameters
         Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request);
 
+        // Search for nearby places by name (query) and optional coordinates
+        Task<NearbyPlacesResponseDTO> SearchNearbyByNameAsync(SearchNearbyByNameRequest request);
+
         // Convert domain SearchNearbyResponse to DTO
         NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response);
 

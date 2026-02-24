@@ -42,6 +42,35 @@ namespace GuideAPI.Application.Services
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
 
+        // Search for nearby places by name and/or coordinates
+        public async Task<NearbyPlacesResponseDTO> SearchNearbyByNameAsync(SearchNearbyByNameRequest request)
+        {
+            // Check for empty query and coordinates
+            bool hasQuery = !string.IsNullOrWhiteSpace(request.Query);
+            bool hasCoordinates = HasCoordinates(request);
+
+            if (!hasQuery && !hasCoordinates)
+                throw new ArgumentException("Search requires either a name (query) or coordinates.");
+
+            // If query is empty, search by coordinates only
+            if (!hasQuery && hasCoordinates)
+            {
+                var nearbyRequest = MapToNearbyRequest(request);
+                return await SearchNearbyAsync(nearbyRequest);
+            }
+
+            // If coordinates are missing, search by place name (query) only
+            if (hasQuery && !hasCoordinates)
+            {
+                // Implement Text Search API call here for search by name only
+                throw new NotImplementedException("Text Search API for name-only search is not implemented.");
+            }
+
+            // If both query and coordinates are present, search for places matching the name near the coordinates
+            // Implement Text Search API call here for search by name near coordinates
+            throw new NotImplementedException("Text Search API for name-near-coordinates search is not implemented.");
+        }
+
         // Get detailed information about a place by Id and optional language
         public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en")
         {
@@ -95,30 +124,7 @@ namespace GuideAPI.Application.Services
             };
         }
 
-        // Helper: Map Place to NearbyPlaceDTO
-        private static NearbyPlaceDTO MapToNearbyPlaceDTO(Place place)
-        {
-            return new NearbyPlaceDTO
-            {
-                Id = place.Id,
-                Name = place.Name,
-                DisplayName = place.DisplayName?.Text,
-                PrimaryType = place.PrimaryType,
-                Latitude = place.Location?.Latitude ?? 0,
-                Longitude = place.Location?.Longitude ?? 0,
-                Rating = place.Rating,
-                UserRatingCount = place.UserRatingCount,
-                ShortFormattedAddress = place.ShortFormattedAddress,
-                PhoneNumber = place.NationalPhoneNumber,
-                WebsiteUri = place.WebsiteUri,
-                GoogleMapsUri = place.GoogleMapsUri,
-                PriceLevel = place.PriceLevel,
-                OpenNow = place.CurrentOpeningHours?.OpenNow,
-                WeekdayDescriptions = place.CurrentOpeningHours?.WeekdayDescriptions,
-                EditorialSummary = place.EditorialSummary?.Text,
-                GenerativeSummary = place.GenerativeSummary?.Overview?.Text
-            };
-        }
+       
         // Get photo URLs for a specific place
         public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
         {
@@ -171,6 +177,31 @@ namespace GuideAPI.Application.Services
             return photoUrls;
         }
 
+        // Helper: Map Place to NearbyPlaceDTO
+        private static NearbyPlaceDTO MapToNearbyPlaceDTO(Place place)
+        {
+            return new NearbyPlaceDTO
+            {
+                Id = place.Id,
+                Name = place.Name,
+                DisplayName = place.DisplayName?.Text,
+                PrimaryType = place.PrimaryType,
+                Latitude = place.Location?.Latitude ?? 0,
+                Longitude = place.Location?.Longitude ?? 0,
+                Rating = place.Rating,
+                UserRatingCount = place.UserRatingCount,
+                ShortFormattedAddress = place.ShortFormattedAddress,
+                PhoneNumber = place.NationalPhoneNumber,
+                WebsiteUri = place.WebsiteUri,
+                GoogleMapsUri = place.GoogleMapsUri,
+                PriceLevel = place.PriceLevel,
+                OpenNow = place.CurrentOpeningHours?.OpenNow,
+                WeekdayDescriptions = place.CurrentOpeningHours?.WeekdayDescriptions,
+                EditorialSummary = place.EditorialSummary?.Text,
+                GenerativeSummary = place.GenerativeSummary?.Overview?.Text
+            };
+        }
+
         // Returns the field mask for Nearby Search requests
         private static string GetNearbySearchFieldMask(string method)
         {
@@ -211,6 +242,29 @@ namespace GuideAPI.Application.Services
                 "places.editorialSummary",
                 "places.generativeSummary"
             );
+        }
+
+        private bool HasCoordinates(SearchNearbyByNameRequest request)
+        {
+            return request.LocationRestriction != null &&
+                   request.LocationRestriction.Circle != null &&
+                   request.LocationRestriction.Circle.Center != null &&
+                   request.LocationRestriction.Circle.Center.Latitude != null &&
+                   request.LocationRestriction.Circle.Center.Longitude != null &&
+                   request.LocationRestriction.Circle.Radius != null;
+        }
+
+        private SearchNearbyRequest MapToNearbyRequest(SearchNearbyByNameRequest request)
+        {
+            return new SearchNearbyRequest
+            {
+                IncludedTypes = request.IncludedTypes,
+                ExcludedTypes = request.ExcludedTypes,
+                MaxResultCount = request.MaxResultCount,
+                LanguageCode = request.LanguageCode,
+                RankPreference = request.RankPreference,
+                LocationRestriction = request.LocationRestriction
+            };
         }
     }
 }
