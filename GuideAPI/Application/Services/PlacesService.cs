@@ -76,54 +76,11 @@ namespace GuideAPI.Application.Services
         /// </summary>
         public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
         {
-            var url = $"{BaseUrl}/{request.PlaceId}";
-            var fieldMask = "photos"; // Only request photos field
-
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
-            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
-            httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
-
-            var response = await _httpClient.SendAsync(httpRequest);
-            if (!response.IsSuccessStatusCode)
-                return Array.Empty<string>();
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            // Google Places API returns photos as an array of objects with at least a 'name' property (photo resource name)
-            // To get the actual photo, you need to request it via: https://places.googleapis.com/v1/{photo.name}
-            // For simplicity, return the photo resource URLs
-
-            using var doc = JsonDocument.Parse(json);
-            var photoUrls = new List<string>();
-
-            if (doc.RootElement.TryGetProperty("photos", out var photosElement) && photosElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var photo in photosElement.EnumerateArray())
-                {
-                    if (photo.TryGetProperty("name", out var nameElement))
-                    {
-                        var photoResourceName = nameElement.GetString();
-                        // Construct the photo resource URL
-                        var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
-
-                        if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
-                        {
-                            if (request.MaxHeightPx.HasValue)
-                                photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
-                            if (request.MaxWidthPx.HasValue)
-                                photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
-                        }
-                        else
-                        {
-                            photoResourceUrl += "&maxHeightPx=400";
-                        }
-                        photoUrls.Add(photoResourceUrl);
-                    }
-                }
-            }
-
-            return photoUrls;
+            var json = await SendPhotoApiRequestAsync(request);
+            return ParsePhotoUrlsFromJson(json, request);
         }
+
+        
 
         // -------------------- ПРИВАТНІ МЕТОДИ --------------------
 
@@ -290,6 +247,71 @@ namespace GuideAPI.Application.Services
             {
                 PropertyNameCaseInsensitive = true
             });
+        }
+
+        /// <summary>
+        /// Відправляє запит до Google Places API для отримання фото місця.
+        /// </summary>
+        private async Task<string> SendPhotoApiRequestAsync(PlacePhotoUrlsRequest request)
+        {
+            var url = $"{BaseUrl}/{request.PlaceId}";
+            var fieldMask = "photos";
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
+            httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            if (!response.IsSuccessStatusCode)
+                return string.Empty;
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// Парсить список URL фотографій з JSON-відповіді.
+        /// </summary>
+        private IReadOnlyList<string> ParsePhotoUrlsFromJson(string json, PlacePhotoUrlsRequest request)
+        {
+            if (string.IsNullOrEmpty(json))
+                return Array.Empty<string>();
+
+            using var doc = JsonDocument.Parse(json);
+            var photoUrls = new List<string>();
+
+            if (doc.RootElement.TryGetProperty("photos", out var photosElement) && photosElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var photo in photosElement.EnumerateArray())
+                {
+                    var url = BuildPhotoResourceUrl(photo, request);
+                    if (!string.IsNullOrEmpty(url))
+                        photoUrls.Add(url);
+                }
+            }
+            return photoUrls;
+        }
+
+        /// <summary>
+        /// Формує URL для отримання фото за photo resource name та параметрами.
+        /// </summary>
+        private string? BuildPhotoResourceUrl(JsonElement photo, PlacePhotoUrlsRequest request)
+        {
+            if (!photo.TryGetProperty("name", out var nameElement))
+                return null;
+            var photoResourceName = nameElement.GetString();
+            if (string.IsNullOrEmpty(photoResourceName))
+                return null;
+            var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
+            if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
+            {
+                if (request.MaxHeightPx.HasValue)
+                    photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
+                if (request.MaxWidthPx.HasValue)
+                    photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
+            }
+            else
+            {
+                photoResourceUrl += "&maxHeightPx=400";
+            }
+            return photoResourceUrl;
         }
 
         /// <summary>
