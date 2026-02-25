@@ -56,7 +56,23 @@ namespace GuideAPI.Application.Services
             {
                 return false;
             }
-            if (place.PhotoUrl.IsNullOrEmpty())
+            if (place.Photo1 == null)
+            {
+                return false;
+            }
+            if (place.Photo2 == null)
+            {
+                return false;
+            }
+            if (place.Photo3 == null)
+            {
+                return false;
+            }
+            if (place.Photo4 == null)
+            {
+                return false;
+            }
+            if (place.Photo5 == null)
             {
                 return false;
             }
@@ -69,7 +85,12 @@ namespace GuideAPI.Application.Services
                 NameOfPlace = place.NameOfPlace,
                 Address = place.Address,
                 Description = place.Description,
-                PhotoUrl = place.PhotoUrl,
+                Photo1 = place.Photo1,
+                Photo2 = place.Photo2,
+                Photo3 = place.Photo3,
+                Photo4 = place.Photo4,
+                Photo5 = place.Photo5
+
             };
         }
         private CustomPlaceDTO MapUserPlaceToCustomPlace(UserPlace place)
@@ -80,7 +101,11 @@ namespace GuideAPI.Application.Services
                 NameOfPlace = place.NameOfPlace,
                 Address = place.Address,
                 Description = place.Description,
-                PhotoUrl = place.PhotoUrl,
+                Photo1 = place.Photo1,
+                Photo2 = place.Photo2,
+                Photo3 = place.Photo3,
+                Photo4 = place.Photo4,
+                Photo5 = place.Photo5
             };
         }
     }

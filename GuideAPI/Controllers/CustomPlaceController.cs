@@ -36,7 +36,7 @@ namespace GuideAPI.Controllers
         }
 
         [HttpGet("getPlaceById")]
-        public async Task<IActionResult> GetPlaceById(int Id)
+        public async Task<IActionResult> GetPlaceById([FromQuery]int Id)
         {
             var result = await _service.GetPlaceById(Id);
             if(result == null)

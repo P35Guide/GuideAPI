@@ -5,7 +5,7 @@
 namespace GuideAPI.DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateMigration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,34 +32,26 @@ namespace GuideAPI.DAL.Migrations
                     NameOfPlace = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AppUserId = table.Column<int>(type: "int", nullable: false)
+                    Photo1 = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    Photo2 = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    Photo3 = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    Photo4 = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    Photo5 = table.Column<byte[]>(type: "varbinary(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserPlaces", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_UserPlaces_AppUsers_AppUserId",
-                        column: x => x.AppUserId,
-                        principalTable: "AppUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserPlaces_AppUserId",
-                table: "UserPlaces",
-                column: "AppUserId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "UserPlaces");
+                name: "AppUsers");
 
             migrationBuilder.DropTable(
-                name: "AppUsers");
+                name: "UserPlaces");
         }
     }
 }

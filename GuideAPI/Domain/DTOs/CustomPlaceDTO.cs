@@ -10,6 +10,11 @@ namespace GuideAPI.Domain.DTOs
         public string NameOfPlace { get; set; }
         public string Address { get; set; }
         public string Description { get; set; }
-        public string PhotoUrl { get; set; }
+        public byte[] Photo1 { get; set; }
+        public byte[] Photo2 { get; set; }
+        public byte[] Photo3 { get; set; }
+        public byte[] Photo4 { get; set; }
+        public byte[] Photo5 { get; set; }
+
     }
 }
