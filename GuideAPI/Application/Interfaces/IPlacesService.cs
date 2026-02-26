@@ -1,7 +1,8 @@
-﻿using GuideAPI.Domain.DTOs;
+﻿using GuideAPI.DAL.Entities; 
+using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GuideAPI.Application.Interfaces
 {
@@ -21,5 +22,8 @@ namespace GuideAPI.Application.Interfaces
 
         // Get photo URLs for a specific place
         Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request);
+
+        // Метод для отримання всіх місць з БД
+        Task<List<UserPlace>> GetAllPlacesAsync();
     }
 }

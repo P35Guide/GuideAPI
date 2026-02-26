@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text;
 using GuideAPI.Application.Interfaces;
+using GuideAPI.DAL.Abstracts;
+using GuideAPI.DAL.Entities;
 using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
 
@@ -10,12 +12,14 @@ namespace GuideAPI.Application.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
+        private readonly IUserPlaceRepository _repository;
         private const string BaseUrl = "https://places.googleapis.com/v1/places";
 
-        public PlacesService(HttpClient httpClient, string apiKey)
+        public PlacesService(HttpClient httpClient, string apiKey,IUserPlaceRepository repository)
         {
             _httpClient = httpClient;
             _apiKey = apiKey;
+            _repository = repository;
         }
 
         // -------------------- ПУБЛІЧНІ МЕТОДИ --------------------

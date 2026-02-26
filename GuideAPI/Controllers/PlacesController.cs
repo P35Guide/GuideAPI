@@ -36,6 +36,13 @@ namespace GuideAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("db-all")]
+        public async Task<IActionResult> GetAllFromDb()
+        {
+            var result = await _service.GetAllPlacesAsync();
+            return Ok(result);
+        }
+
         [HttpGet("google-maps-details/{placeId}")]
         public async Task<IActionResult> GetDetails(string placeId, [FromQuery] string? lang = "en") //The language code for Ukrainian is "uk"
         {
