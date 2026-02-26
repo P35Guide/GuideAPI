@@ -1,5 +1,8 @@
 ﻿using System.Text.Json;
+using System.Text;
 using GuideAPI.Application.Interfaces;
+using GuideAPI.DAL.Abstracts;
+using GuideAPI.DAL.Entities;
 using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
 
@@ -9,19 +12,95 @@ namespace GuideAPI.Application.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
+        private readonly IUserPlaceRepository _repository;
         private const string BaseUrl = "https://places.googleapis.com/v1/places";
 
-        public PlacesService(HttpClient httpClient, string apiKey)
+        public PlacesService(HttpClient httpClient, string apiKey,IUserPlaceRepository repository)
         {
             _httpClient = httpClient;
             _apiKey = apiKey;
+            _repository = repository;
         }
 
-        // Search for nearby places by request parameters
+        // -------------------- ПУБЛІЧНІ МЕТОДИ --------------------
+
+        /// <summary>
+        /// Виконує пошук місць поблизу за параметрами (координати, типи, радіус).
+        /// </summary>
         public async Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request)
         {
             var radius = request.LocationRestriction.Circle.Radius;
-            request.LocationRestriction.Circle.Radius = radius <=0?1000:radius;
+            request.LocationRestriction.Circle.Radius = radius <= 0 ? 1000 : radius;
+
+            var json = await SendNearbySearchApiRequestAsync(request);
+            var searchNearbyResponse = DeserializeNearbySearchResponse(json);
+
+            return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
+        }
+
+        /// <summary>
+        /// Повертає координати міста або місця за назвою (query).
+        /// </summary>
+        public async Task<Center?> GetCityCoordinatesByQueryAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentException("Query is required.");
+
+            var textSearchJson = await SendTextSearchApiRequestAsync(query);
+            return ParseCityCoordinatesFromJson(textSearchJson);
+        }
+
+        /// <summary>
+        /// Отримує детальну інформацію про місце за його placeId та мовою.
+        /// </summary>
+        public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en")
+        {
+            var json = await SendPlaceDetailsApiRequestAsync(placeId, languageCode);
+            var place = DeserializePlaceDetailsResponse(json);
+
+            if (place == null)
+                return null;
+
+            return MapToNearbyPlaceDTO(place);
+        }
+
+        /// <summary>
+        /// Конвертує SearchNearbyResponse у DTO для контролера.
+        /// </summary>
+        public NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response)
+        {
+            return new NearbyPlacesResponseDTO
+            {
+                Places = response.Places?.Select(MapToNearbyPlaceDTO).ToArray() ?? Array.Empty<NearbyPlaceDTO>()
+            };
+        }
+
+        /// <summary>
+        /// Повертає список URL фотографій для конкретного місця.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
+        {
+            var json = await SendPhotoApiRequestAsync(request);
+            return ParsePhotoUrlsFromJson(json, request);
+        }
+
+        /// <summary>
+        /// Returns all user places from the repository.
+        /// </summary>
+        public async Task<List<UserPlace>> GetAllPlacesAsync()
+        {
+            return await _repository.GetAllPlacesAsync();
+        }
+
+
+
+        // -------------------- ПРИВАТНІ МЕТОДИ --------------------
+
+        /// <summary>
+        /// Відправляє запит Nearby Search до Google Places API.
+        /// </summary>
+        private async Task<string> SendNearbySearchApiRequestAsync(SearchNearbyRequest request)
+        {
             var url = $"{BaseUrl}:searchNearby";
             var fieldMask = GetNearbySearchFieldMask("POST");
 
@@ -33,26 +112,115 @@ namespace GuideAPI.Application.Services
             var response = await _httpClient.SendAsync(httpRequest);
             response.EnsureSuccessStatusCode();
 
-            var json = await response.Content.ReadAsStringAsync();
-            var searchNearbyResponse = JsonSerializer.Deserialize<SearchNearbyResponse>(json, new JsonSerializerOptions
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// Десеріалізує Nearby Search відповідь у SearchNearbyResponse.
+        /// </summary>
+        private SearchNearbyResponse? DeserializeNearbySearchResponse(string json)
+        {
+            return JsonSerializer.Deserialize<SearchNearbyResponse>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-
-            return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
 
-        // Get detailed information about a place by Id and optional language
-        public async Task<NearbyPlaceDTO?> GetPlaceDetailsAsync(string placeId, string languageCode = "en")
+        /// <summary>
+        /// Відправляє запит Text Search до Google Places API для пошуку міста.
+        /// </summary>
+        private async Task<string> SendTextSearchApiRequestAsync(string query)
+        {
+            var textSearchRequest = BuildTextSearchHttpRequest(query);
+            var response = await _httpClient.SendAsync(textSearchRequest);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// Створює HTTP-запит для Text Search.
+        /// </summary>
+        private HttpRequestMessage BuildTextSearchHttpRequest(string query)
+        {
+            var textSearchUrl = $"{BaseUrl}:searchText";
+            var textSearchBody = new
+            {
+                textQuery = query
+            };
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, textSearchUrl);
+            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
+            httpRequest.Headers.Add("X-Goog-FieldMask", "places.location");
+            httpRequest.Content = new StringContent(JsonSerializer.Serialize(textSearchBody), Encoding.UTF8, "application/json");
+            return httpRequest;
+        }
+
+
+        /// <summary>
+        /// Парсить координати міста з JSON-відповіді Text Search.
+        /// </summary>
+        private Center? ParseCityCoordinatesFromJson(string textSearchJson)
+        {
+            var placesArray = ExtractPlacesArray(textSearchJson);
+            if (placesArray.Length == 0)
+                return null;
+
+            return ExtractCoordinatesFromPlace(placesArray[0]);
+        }
+
+        /// <summary>
+        /// Витягує масив places з JSON-відповіді та повертає клоновані елементи.
+        /// </summary>
+        private JsonElement[] ExtractPlacesArray(string textSearchJson)
+        {
+            using var textSearchDoc = JsonDocument.Parse(textSearchJson);
+            if (textSearchDoc.RootElement.TryGetProperty("places", out var pe) && pe.ValueKind == JsonValueKind.Array)
+            {
+                return pe.EnumerateArray().Select(e => e.Clone()).ToArray();
+            }
+            return Array.Empty<JsonElement>();
+        }
+
+        /// <summary>
+        /// Витягує координати з елемента місця.
+        /// </summary>
+        private Center? ExtractCoordinatesFromPlace(JsonElement placeElement)
+        {
+            if (!placeElement.TryGetProperty("location", out var location))
+                return null;
+
+            double latitude = location.GetProperty("latitude").GetDouble();
+            double longitude = location.GetProperty("longitude").GetDouble();
+
+            return new Center
+            {
+                Latitude = latitude,
+                Longitude = longitude
+            };
+        }
+
+        /// <summary>
+        /// Відправляє запит на отримання деталей місця.
+        /// </summary>
+        private async Task<string> SendPlaceDetailsApiRequestAsync(string placeId, string languageCode)
+        {
+            var httpRequest = BuildPlaceDetailsHttpRequest(placeId, languageCode);
+            var response = await _httpClient.SendAsync(httpRequest);
+            return await HandlePlaceDetailsApiResponseAsync(response, languageCode);
+        }
+
+        /// <summary>
+        /// Створює HTTP-запит для отримання деталей місця.
+        /// </summary>
+        private HttpRequestMessage BuildPlaceDetailsHttpRequest(string placeId, string languageCode)
         {
             var url = $"{BaseUrl}/{placeId}";
             var fieldMask = GetNearbySearchFieldMask("GET");
 
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
             httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
             httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
 
-            // Add languageCode only if provided and not empty
             var uriBuilder = new UriBuilder(url);
             if (!string.IsNullOrWhiteSpace(languageCode))
             {
@@ -60,9 +228,14 @@ namespace GuideAPI.Application.Services
             }
             httpRequest.RequestUri = uriBuilder.Uri;
 
-            var response = await _httpClient.SendAsync(httpRequest);
+            return httpRequest;
+        }
 
-            // Check for invalid language code error
+        /// <summary>
+        /// Обробляє відповідь на запит деталей місця, перевіряє помилки.
+        /// </summary>
+        private async Task<string> HandlePlaceDetailsApiResponseAsync(HttpResponseMessage response, string languageCode)
+        {
             if (!response.IsSuccessStatusCode)
             {
                 var errorJson = await response.Content.ReadAsStringAsync();
@@ -71,31 +244,91 @@ namespace GuideAPI.Application.Services
                 {
                     throw new ArgumentException($"Invalid language code: {languageCode}");
                 }
-                return null;
+                return null!;
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            var place = JsonSerializer.Deserialize<Place>(json, new JsonSerializerOptions
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// Десеріалізує JSON-відповідь деталей місця у Place.
+        /// </summary>
+        private Place? DeserializePlaceDetailsResponse(string json)
+        {
+            return JsonSerializer.Deserialize<Place>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-
-            if (place == null)
-                return null;
-
-            return MapToNearbyPlaceDTO(place);
         }
 
-        // Convert domain SearchNearbyResponse to DTO
-        public NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response)
+        /// <summary>
+        /// Відправляє запит до Google Places API для отримання фото місця.
+        /// </summary>
+        private async Task<string> SendPhotoApiRequestAsync(PlacePhotoUrlsRequest request)
         {
-            return new NearbyPlacesResponseDTO
-            {
-                Places = response.Places?.Select(MapToNearbyPlaceDTO).ToArray() ?? Array.Empty<NearbyPlaceDTO>()
-            };
+            var url = $"{BaseUrl}/{request.PlaceId}";
+            var fieldMask = "photos";
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
+            httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            if (!response.IsSuccessStatusCode)
+                return string.Empty;
+            return await response.Content.ReadAsStringAsync();
         }
 
-        // Helper: Map Place to NearbyPlaceDTO
+        /// <summary>
+        /// Парсить список URL фотографій з JSON-відповіді.
+        /// </summary>
+        private IReadOnlyList<string> ParsePhotoUrlsFromJson(string json, PlacePhotoUrlsRequest request)
+        {
+            if (string.IsNullOrEmpty(json))
+                return Array.Empty<string>();
+
+            using var doc = JsonDocument.Parse(json);
+            var photoUrls = new List<string>();
+
+            if (doc.RootElement.TryGetProperty("photos", out var photosElement) && photosElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var photo in photosElement.EnumerateArray())
+                {
+                    var url = BuildPhotoResourceUrl(photo, request);
+                    if (!string.IsNullOrEmpty(url))
+                        photoUrls.Add(url);
+                }
+            }
+            return photoUrls;
+        }
+
+        /// <summary>
+        /// Формує URL для отримання фото за photo resource name та параметрами.
+        /// </summary>
+        private string? BuildPhotoResourceUrl(JsonElement photo, PlacePhotoUrlsRequest request)
+        {
+            if (!photo.TryGetProperty("name", out var nameElement))
+                return null;
+            var photoResourceName = nameElement.GetString();
+            if (string.IsNullOrEmpty(photoResourceName))
+                return null;
+            var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
+            if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
+            {
+                if (request.MaxHeightPx.HasValue)
+                    photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
+                if (request.MaxWidthPx.HasValue)
+                    photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
+            }
+            else
+            {
+                photoResourceUrl += "&maxHeightPx=400";
+            }
+            return photoResourceUrl;
+        }
+
+        /// <summary>
+        /// Конвертує Place у NearbyPlaceDTO.
+        /// </summary>
         private static NearbyPlaceDTO MapToNearbyPlaceDTO(Place place)
         {
             return new NearbyPlaceDTO
@@ -119,62 +352,13 @@ namespace GuideAPI.Application.Services
                 GenerativeSummary = place.GenerativeSummary?.Overview?.Text
             };
         }
-        // Get photo URLs for a specific place
-        public async Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request)
-        {
-            var url = $"{BaseUrl}/{request.PlaceId}";
-            var fieldMask = "photos"; // Only request photos field
 
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
-            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
-            httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
-
-            var response = await _httpClient.SendAsync(httpRequest);
-            if (!response.IsSuccessStatusCode)
-                return Array.Empty<string>();
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            // Google Places API returns photos as an array of objects with at least a 'name' property (photo resource name)
-            // To get the actual photo, you need to request it via: https://places.googleapis.com/v1/{photo.name}
-            // For simplicity, return the photo resource URLs
-
-            using var doc = JsonDocument.Parse(json);
-            var photoUrls = new List<string>();
-
-            if (doc.RootElement.TryGetProperty("photos", out var photosElement) && photosElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var photo in photosElement.EnumerateArray())
-                {
-                    if (photo.TryGetProperty("name", out var nameElement))
-                    {
-                        var photoResourceName = nameElement.GetString();
-                        // Construct the photo resource URL
-                        var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
-
-                        if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
-                        {
-                            if (request.MaxHeightPx.HasValue)
-                                photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
-                            if (request.MaxWidthPx.HasValue)
-                                photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
-                        }
-                        else
-                        {
-                            photoResourceUrl += "&maxHeightPx=400";
-                        }
-                            photoUrls.Add(photoResourceUrl);
-                    }
-                }
-            }
-
-            return photoUrls;
-        }
-
-        // Returns the field mask for Nearby Search requests
+        /// <summary>
+        /// Повертає field mask для Nearby Search/Details запитів.
+        /// </summary>
         private static string GetNearbySearchFieldMask(string method)
         {
-            if(method == "GET")
+            if (method == "GET")
             {
                 return string.Join(",",
                 "id",

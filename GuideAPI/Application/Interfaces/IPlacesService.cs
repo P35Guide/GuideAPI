@@ -1,7 +1,8 @@
-﻿using GuideAPI.Domain.DTOs;
+﻿using GuideAPI.DAL.Entities; 
+using GuideAPI.Domain.DTOs;
 using GuideAPI.Domain.Models;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GuideAPI.Application.Interfaces
 {
@@ -9,6 +10,9 @@ namespace GuideAPI.Application.Interfaces
     {
         // Search for nearby places by request parameters
         Task<NearbyPlacesResponseDTO> SearchNearbyAsync(SearchNearbyRequest request);
+
+        // Get coordinates from name
+        Task<Center?> GetCityCoordinatesByQueryAsync(string query);
 
         // Convert domain SearchNearbyResponse to DTO
         NearbyPlacesResponseDTO MapToNearbyPlacesResponseDTO(SearchNearbyResponse response);
@@ -18,5 +22,8 @@ namespace GuideAPI.Application.Interfaces
 
         // Get photo URLs for a specific place
         Task<IReadOnlyList<string>> GetPlacePhotoUrlsAsync(PlacePhotoUrlsRequest request);
+
+        // Метод для отримання всіх місць з БД
+        Task<List<UserPlace>> GetAllPlacesAsync();
     }
 }
