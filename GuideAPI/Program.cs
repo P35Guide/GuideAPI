@@ -39,10 +39,13 @@ namespace GuideAPI
                 var repository = serviceProvider.GetRequiredService<IUserPlaceRepository>();
                 return new PlacesService(httpClient, apiKey, repository);
 			});
-			builder.Services.AddDbContext<AppDbContext>(options =>
-				options.UseSqlServer(
-					builder.Configuration.GetConnectionString("DmytroNaumov"
-                    )));
+            
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                   
+                    b => b.MigrationsAssembly("GuideAPI.DAL")
+                ));
 
             builder.Services.AddScoped<IUserPlaceRepository, UserPlaceRepository>();
 			builder.Services.AddScoped<ICustomPlacesService, CustomPlacesService>();

@@ -84,7 +84,15 @@ namespace GuideAPI.Application.Services
             return ParsePhotoUrlsFromJson(json, request);
         }
 
-        
+        /// <summary>
+        /// Returns all user places from the repository.
+        /// </summary>
+        public async Task<List<UserPlace>> GetAllPlacesAsync()
+        {
+            return await _repository.GetAllPlacesAsync();
+        }
+
+
 
         // -------------------- ПРИВАТНІ МЕТОДИ --------------------
 
