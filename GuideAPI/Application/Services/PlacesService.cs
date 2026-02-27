@@ -308,21 +308,22 @@ namespace GuideAPI.Application.Services
         {
             if (!photo.TryGetProperty("name", out var nameElement))
                 return null;
+
             var photoResourceName = nameElement.GetString();
-            if (string.IsNullOrEmpty(photoResourceName))
+            if (string.IsNullOrWhiteSpace(photoResourceName))
                 return null;
+
+            // Базовий URL
             var photoResourceUrl = $"https://places.googleapis.com/v1/{photoResourceName}/media?key={_apiKey}";
-            if (request.MaxHeightPx.HasValue || request.MaxWidthPx.HasValue)
-            {
-                if (request.MaxHeightPx.HasValue)
-                    photoResourceUrl += $"&maxHeightPx={Math.Clamp(request.MaxHeightPx.Value, 1, 4800)}";
-                if (request.MaxWidthPx.HasValue)
-                    photoResourceUrl += $"&maxWidthPx={Math.Clamp(request.MaxWidthPx.Value, 1, 4800)}";
-            }
-            else
-            {
-                photoResourceUrl += "&maxHeightPx=400";
-            }
+
+            
+            int height = request.MaxHeightPx ?? 4800;
+            int width = request.MaxWidthPx ?? 4800;
+
+           
+            photoResourceUrl += $"&maxHeightPx={Math.Clamp(height, 1, 4800)}";
+            photoResourceUrl += $"&maxWidthPx={Math.Clamp(width, 1, 4800)}";
+
             return photoResourceUrl;
         }
 
