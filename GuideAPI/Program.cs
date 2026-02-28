@@ -49,6 +49,7 @@ namespace GuideAPI
 
             builder.Services.AddScoped<IUserPlaceRepository, UserPlaceRepository>();
 			builder.Services.AddScoped<ITelegramUserRepository, TelegramUserRepository>();
+			builder.Services.AddScoped<ITelegramUserService, TelegramUserService>();
 			builder.Services.AddScoped<ICustomPlacesService, CustomPlacesService>();
 
             var app = builder.Build();
