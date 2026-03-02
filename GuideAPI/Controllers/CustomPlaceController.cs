@@ -1,18 +1,23 @@
 ﻿using GuideAPI.Application.Interfaces;
 using GuideAPI.Domain.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace GuideAPI.Controllers
 {
     [ApiController]
     [Route("api/custom")]
-    public class CustomPlaceController:ControllerBase
+    public class CustomPlaceController : ControllerBase
     {
         ICustomPlacesService _service { get; set; }
-        public CustomPlaceController(ICustomPlacesService service)
+        private readonly ILogger<CustomPlaceController> _logger;
+
+        public CustomPlaceController(ICustomPlacesService service, ILogger<CustomPlaceController> logger)
         {
             _service = service;
+            _logger = logger;
         }
+
         [HttpPost("addPlace")]
         public async Task<IActionResult> AddPlace([FromBody]CustomPlaceDTO placeDTO)
         {
@@ -28,7 +33,7 @@ namespace GuideAPI.Controllers
         public async Task<IActionResult> GetAllPlaces()
         {
             var result = await _service.GetAllPlaces();
-            if(result != null)
+            if (result != null)
             {
                 return Ok(result);
             }
@@ -36,10 +41,10 @@ namespace GuideAPI.Controllers
         }
 
         [HttpGet("getPlaceById")]
-        public async Task<IActionResult> GetPlaceById([FromQuery]int Id)
+        public async Task<IActionResult> GetPlaceById([FromQuery] int Id)
         {
             var result = await _service.GetPlaceById(Id);
-            if(result == null)
+            if (result == null)
             {
                 return NotFound("uncorrect id");
             }

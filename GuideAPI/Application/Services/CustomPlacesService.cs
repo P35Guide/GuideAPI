@@ -3,6 +3,7 @@ using GuideAPI.DAL.Abstracts;
 using GuideAPI.DAL.Entities;
 using GuideAPI.Domain.DTOs;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 
 namespace GuideAPI.Application.Services
 {
@@ -17,7 +18,7 @@ namespace GuideAPI.Application.Services
         public async Task<bool> AddPlace(CustomPlaceDTO place)
         {
             bool addable = await ChackInfo(place);
-            if (addable == false)
+            if (!addable)
             {
                 return false;
             }
@@ -38,7 +39,8 @@ namespace GuideAPI.Application.Services
         public async Task<CustomPlaceDTO> GetPlaceById(int Id)
         {
             var places = await _repository.GetAllPlacesAsync();
-            return MapUserPlaceToCustomPlace(places.FirstOrDefault(p => p.Id == Id));
+            var found = places.FirstOrDefault(p => p.Id == Id);
+            return MapUserPlaceToCustomPlace(found);
         }
 
 
@@ -85,12 +87,13 @@ namespace GuideAPI.Application.Services
                 NameOfPlace = place.NameOfPlace,
                 Address = place.Address,
                 Description = place.Description,
+                Latitude = place.Latitude, // not required, default 0 if not set
+                Longitude = place.Longitude, // not required, default 0 if not set
                 Photo1 = place.Photo1,
                 Photo2 = place.Photo2,
                 Photo3 = place.Photo3,
                 Photo4 = place.Photo4,
                 Photo5 = place.Photo5
-
             };
         }
         private CustomPlaceDTO MapUserPlaceToCustomPlace(UserPlace place)
@@ -101,6 +104,8 @@ namespace GuideAPI.Application.Services
                 NameOfPlace = place.NameOfPlace,
                 Address = place.Address,
                 Description = place.Description,
+                Latitude = place.Latitude, // not required, default 0 if not set
+                Longitude = place.Longitude, // not required, default 0 if not set
                 Photo1 = place.Photo1,
                 Photo2 = place.Photo2,
                 Photo3 = place.Photo3,
