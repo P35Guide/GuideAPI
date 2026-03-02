@@ -1,4 +1,4 @@
-﻿using GuideAPI.DAL.Entities;
+using GuideAPI.DAL.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

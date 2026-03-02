@@ -1,4 +1,4 @@
-﻿using GuideAPI.DAL.Abstracts;
+using GuideAPI.DAL.Abstracts;
 using GuideAPI.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
