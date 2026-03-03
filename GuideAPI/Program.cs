@@ -3,6 +3,7 @@ using GuideAPI.Application.Services;
 using GuideAPI.DAL;
 using GuideAPI.DAL.Abstracts;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace GuideAPI
 {
@@ -41,7 +42,7 @@ namespace GuideAPI
 			});
             
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(
+                options.UseNpgsql(
                     builder.Configuration.GetConnectionString("DefaultConnection"),
                    
                     b => b.MigrationsAssembly("GuideAPI.DAL")
