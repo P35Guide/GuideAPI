@@ -43,7 +43,7 @@ namespace GuideAPI
             
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(
-                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                    builder.Configuration.GetConnectionString("KulbachukViacheslav"),
                    
                     b => b.MigrationsAssembly("GuideAPI.DAL")
                 ));
