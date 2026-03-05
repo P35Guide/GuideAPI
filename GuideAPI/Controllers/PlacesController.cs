@@ -89,6 +89,17 @@ namespace GuideAPI.Controllers
             return Ok(result);
         }
 
+        [HttpPost("google-maps-search-by-text")]
+        public async Task<IActionResult> GetPlacesByText([FromBody]SearchByTextRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Bad request");
+            }
+            var result = await _service.SearchByTextAsync(request);
+
+            return Ok(result);
+        }
     }
 }
 
