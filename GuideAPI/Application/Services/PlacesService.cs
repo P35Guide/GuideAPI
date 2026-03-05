@@ -38,7 +38,9 @@ namespace GuideAPI.Application.Services
 
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
-        ////////////////////// концепт
+        /// <summary>
+        /// Виконує пошук місць за текстовою строкою.
+        /// </summary>
         public async Task<NearbyPlacesResponseDTO> SearchByTextAsync (SearchByTextRequest request)
         {
             var json = await SendTextSearchApiRequestAsync(request);
@@ -46,7 +48,6 @@ namespace GuideAPI.Application.Services
 
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
-        //////////////////////
 
         /// <summary>
         /// Повертає координати міста або місця за назвою (query).
@@ -125,7 +126,9 @@ namespace GuideAPI.Application.Services
             return await response.Content.ReadAsStringAsync();
         }
 
-        ////////////////// концепт
+        /// <summary>
+        /// Відправляє запит TextQuery Search до Google Places API.
+        /// </summary>
         private async Task<string> SendTextSearchApiRequestAsync(SearchByTextRequest request)
         {
             var url = $"{TextSearchURI}:searchText";
