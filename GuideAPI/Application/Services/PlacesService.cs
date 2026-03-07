@@ -14,7 +14,6 @@ namespace GuideAPI.Application.Services
         private readonly string _apiKey;
         private readonly IUserPlaceRepository _repository;
         private const string BaseUrl = "https://places.googleapis.com/v1/places";
-        private const string TextSearchURI = "https://places.googleapis.com/v1/places";
 
         public PlacesService(HttpClient httpClient, string apiKey,IUserPlaceRepository repository)
         {
@@ -131,7 +130,7 @@ namespace GuideAPI.Application.Services
         /// </summary>
         private async Task<string> SendTextSearchApiRequestAsync(SearchByTextRequest request)
         {
-            var url = $"{TextSearchURI}:searchText";
+            var url = $"{BaseUrl}:searchText";
             var fieldMask = GetNearbySearchFieldMask("POST");
 
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
