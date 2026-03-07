@@ -37,6 +37,16 @@ namespace GuideAPI.Application.Services
 
             return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
         }
+        /// <summary>
+        /// Виконує пошук місць за текстовою строкою.
+        /// </summary>
+        public async Task<NearbyPlacesResponseDTO> SearchByTextAsync (SearchByTextRequest request)
+        {
+            var json = await SendTextSearchApiRequestAsync(request);
+            var searchNearbyResponse = DeserializeNearbySearchResponse(json);
+
+            return MapToNearbyPlacesResponseDTO(searchNearbyResponse!);
+        }
 
         /// <summary>
         /// Повертає координати міста або місця за назвою (query).
@@ -114,6 +124,26 @@ namespace GuideAPI.Application.Services
 
             return await response.Content.ReadAsStringAsync();
         }
+
+        /// <summary>
+        /// Відправляє запит TextQuery Search до Google Places API.
+        /// </summary>
+        private async Task<string> SendTextSearchApiRequestAsync(SearchByTextRequest request)
+        {
+            var url = $"{BaseUrl}:searchText";
+            var fieldMask = GetNearbySearchFieldMask("POST");
+
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Headers.Add("X-Goog-Api-Key", _apiKey);
+            httpRequest.Headers.Add("X-Goog-FieldMask", fieldMask);
+            httpRequest.Content = JsonContent.Create(request);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
+        }
+        //////////////////
 
         /// <summary>
         /// Десеріалізує Nearby Search відповідь у SearchNearbyResponse.

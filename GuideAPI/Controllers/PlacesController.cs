@@ -89,6 +89,25 @@ namespace GuideAPI.Controllers
             return Ok(result);
         }
 
+        [HttpPost("google-maps-search-by-text")]
+        public async Task<IActionResult> GetPlacesByText([FromBody]SearchByTextRequest request, [FromQuery] bool? openNow = null)
+        {
+            if (request == null)
+            {
+                return BadRequest("Bad request");
+            }
+            var result = await _service.SearchByTextAsync(request);
+
+            // фільтрація, чи відкрито
+            if (openNow == true)
+            {
+                result.Places = result.Places?
+                    .Where(p => p.OpenNow == true)
+                    .ToArray() ?? Array.Empty<NearbyPlaceDTO>();
+            }
+
+            return Ok(result);
+        }
     }
 }
 
