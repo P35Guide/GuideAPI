@@ -1,8 +1,7 @@
-﻿using GuideAPI.Application.Interfaces;
+using GuideAPI.Application.Interfaces;
 using GuideAPI.DAL.Abstracts;
 using GuideAPI.DAL.Entities;
 using GuideAPI.Domain.DTOs;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Logging;
 
 namespace GuideAPI.Application.Services
@@ -46,15 +45,15 @@ namespace GuideAPI.Application.Services
 
         private async Task<bool> ChackInfo(CustomPlaceDTO place)
         {
-            if (place.NameOfPlace.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(place.NameOfPlace))
             {
                 return false;
             }
-            if (place.Address.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(place.Address))
             {
                 return false;
             }
-            if (place.Description.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(place.Description))
             {
                 return false;
             }
